@@ -1,9 +1,11 @@
 import Sidebar from './Sidebar';
 import Footer from './Footer';
+import NetworkBackground from './NetworkBackground';
 
 export default function PageShell({ children }) {
   return (
     <>
+      <NetworkBackground />
       <Sidebar />
       <main className="page-main">
         <div className="container" style={{ paddingTop: '56px', paddingBottom: '90px' }}>

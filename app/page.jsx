@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import PageShell from '../components/PageShell';
-import NetworkBackground from '../components/NetworkBackground';
 import WordReveal from '../components/WordReveal';
 import Ticker from '../components/Ticker';
 import { fadeUp, staggerContainer, staggerItem, VIEW } from '../lib/motion';
@@ -11,7 +10,6 @@ import { OFFER_CARDS, LAW_AREAS } from '../lib/content';
 export default function HomePage() {
   return (
     <>
-      <NetworkBackground />
       <PageShell>
         <motion.section
           style={{ textAlign: 'center', maxWidth: '780px', margin: '24px auto 48px' }}

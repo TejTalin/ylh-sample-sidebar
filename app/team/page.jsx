@@ -1,16 +1,13 @@
 'use client';
 import { motion } from 'framer-motion';
 import PageShell from '../../components/PageShell';
-import NetworkBackground from '../../components/NetworkBackground';
 import WordReveal from '../../components/WordReveal';
 import { staggerContainer, staggerItem, VIEW } from '../../lib/motion';
 import { TEAM_MEMBERS } from '../../lib/content';
 
 export default function TeamPage() {
   return (
-    <>
-      <NetworkBackground />
-      <PageShell>
+    <PageShell>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <WordReveal text="Meet Our Team" as="h1" className="serif page-title" style={{ textAlign: 'center' }} />
         </div>
@@ -34,6 +31,5 @@ export default function TeamPage() {
           ))}
         </motion.div>
       </PageShell>
-    </>
   );
 }

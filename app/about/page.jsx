@@ -1,16 +1,13 @@
 'use client';
 import { motion } from 'framer-motion';
 import PageShell from '../../components/PageShell';
-import NetworkBackground from '../../components/NetworkBackground';
 import WordReveal from '../../components/WordReveal';
 import { fadeUp, staggerContainer, staggerItem, VIEW } from '../../lib/motion';
 import { ABOUT_TEXT, FOUNDER_MESSAGES } from '../../lib/content';
 
 export default function AboutPage() {
   return (
-    <>
-      <NetworkBackground />
-      <PageShell>
+    <PageShell>
         <motion.div initial="hidden" whileInView="visible" viewport={VIEW} variants={fadeUp} style={{ textAlign: 'center', marginBottom: '36px' }}>
           <WordReveal text="About The Initiative" as="h1" className="serif page-title" style={{ textAlign: 'center' }} />
         </motion.div>
@@ -30,6 +27,5 @@ export default function AboutPage() {
           ))}
         </motion.div>
       </PageShell>
-    </>
   );
 }

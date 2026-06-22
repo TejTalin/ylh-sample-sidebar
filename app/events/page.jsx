@@ -1,16 +1,13 @@
 'use client';
 import { motion } from 'framer-motion';
 import PageShell from '../../components/PageShell';
-import NetworkBackground from '../../components/NetworkBackground';
 import WordReveal from '../../components/WordReveal';
 import { fadeUp, VIEW } from '../../lib/motion';
 import { EVENT_INFO } from '../../lib/content';
 
 export default function EventsPage() {
   return (
-    <>
-      <NetworkBackground />
-      <PageShell>
+    <PageShell>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <WordReveal text="Events & Competitions" as="h1" className="serif page-title" style={{ textAlign: 'center' }} />
         </div>
@@ -36,6 +33,5 @@ export default function EventsPage() {
           <a href="#" className="pill pill-solid">Register for Trivia</a>
         </motion.div>
       </PageShell>
-    </>
   );
 }

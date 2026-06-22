@@ -1,16 +1,13 @@
 'use client';
 import { motion } from 'framer-motion';
 import PageShell from '../../components/PageShell';
-import NetworkBackground from '../../components/NetworkBackground';
 import WordReveal from '../../components/WordReveal';
 import { staggerContainer, staggerItem, VIEW } from '../../lib/motion';
 import { SAMPLE_BLOGS } from '../../lib/content';
 
 export default function BlogsPage() {
   return (
-    <>
-      <NetworkBackground />
-      <PageShell>
+    <PageShell>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <WordReveal text="Legal Insights" as="h1" className="serif page-title" style={{ textAlign: 'center' }} />
           <p style={{ color: 'var(--grey-text)', maxWidth: '480px', margin: '0 auto' }}>Peer-written analysis across every major area of law.</p>
@@ -27,6 +24,5 @@ export default function BlogsPage() {
           ))}
         </motion.div>
       </PageShell>
-    </>
   );
 }

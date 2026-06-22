@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageShell from '../../components/PageShell';
-import NetworkBackground from '../../components/NetworkBackground';
 import WordReveal from '../../components/WordReveal';
 import { CONTACT_INFO } from '../../lib/content';
 import { useFakeSubmit } from '../../lib/useFakeSubmit';
@@ -19,9 +18,7 @@ export default function ContactPage() {
   };
 
   return (
-    <>
-      <NetworkBackground />
-      <PageShell>
+    <PageShell>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <WordReveal text="Get in Touch" as="h1" className="serif page-title" style={{ textAlign: 'center' }} />
           <p style={{ color: 'var(--grey-text)', maxWidth: '480px', margin: '0 auto' }}>Have a question or want to collaborate? Reach out below.</p>
@@ -78,6 +75,5 @@ export default function ContactPage() {
           Or email us at <strong>{CONTACT_INFO.email}</strong>
         </p>
       </PageShell>
-    </>
   );
 }
