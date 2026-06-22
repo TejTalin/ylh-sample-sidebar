@@ -19,3 +19,4 @@ npm run dev
 - Background: floating connected-node network (calm, legal-tech)
 - Animation style: clean fade/slide reveals, word-by-word headline reveals
 - Cursor interaction: soft glow follows cursor inside the sidebar only
+
