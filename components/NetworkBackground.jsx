@@ -1,78 +1,65 @@
 'use client';
 import { useEffect, useRef } from 'react';
 
-const NODES = [
-  { x: 10, y: 14 }, { x: 24, y: 26 }, { x: 40, y: 12 }, { x: 56, y: 28 },
-  { x: 72, y: 13 }, { x: 88, y: 24 }, { x: 16, y: 52 }, { x: 33, y: 64 },
-  { x: 50, y: 50 }, { x: 67, y: 66 }, { x: 84, y: 51 }, { x: 12, y: 82 },
-  { x: 40, y: 88 }, { x: 75, y: 86 },
-];
-const LINKS = [[0,1],[1,2],[2,3],[3,4],[4,5],[1,6],[3,8],[6,7],[7,8],[8,9],[9,10],[6,11],[7,12],[9,13]];
-
+/**
+ * GlowOrbs (bold, room-filling, cursor-reactive)
+ * Three large soft-light orbs drift slowly across the FULL page height
+ * (not just viewport) and visibly chase the cursor with springy elastic
+ * lag — big, obvious motion meant to be noticed from across a room.
+ * Replaces the old subtle node-network for the Editorial Sidebar sample.
+ */
 export default function NetworkBackground() {
-  const svgRef = useRef(null);
-  const dotsRef = useRef([]);
+  const orbRefs = useRef([]);
   const rafRef = useRef(null);
   const mouse = useRef({ x: -9999, y: -9999 });
-  const offsets = useRef(NODES.map(() => ({ x: 0, y: 0 })));
+  const pos = useRef([
+    { x: 0.2, y: 0.15, vx: 0, vy: 0 },
+    { x: 0.75, y: 0.45, vx: 0, vy: 0 },
+    { x: 0.4, y: 0.8, vx: 0, vy: 0 },
+  ]);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const onMove = (e) => { mouse.current = { x: e.clientX, y: e.clientY }; };
-    const onLeave = () => { mouse.current = { x: -9999, y: -9999 }; };
+    const onMove = (e) => {
+      const docH = document.documentElement.scrollHeight;
+      mouse.current = { x: e.clientX, y: e.clientY + window.scrollY, docH };
+    };
     window.addEventListener('pointermove', onMove, { passive: true });
-    window.addEventListener('pointerleave', onLeave);
 
-    const phases = NODES.map((_, i) => ({
-      xPhase: i * 0.7, yPhase: i * 0.5 + 1.1,
-      xAmp: 1 + (i % 3) * 0.5, yAmp: 0.8 + (i % 4) * 0.4,
-      speed: 0.00024 + (i % 5) * 0.00004,
-    }));
+    if (reduced) {
+      return () => window.removeEventListener('pointermove', onMove);
+    }
 
-    const RADIUS = 220;
-    const PULL = 0.16;
+    const STRENGTH = [0.012, 0.02, 0.016]; // each orb chases at a different speed -> elastic lag feel
+    const DAMPING = 0.90;
 
     const tick = (t) => {
-      const w = window.innerWidth, h = window.innerHeight;
+      const docH = document.documentElement.scrollHeight || window.innerHeight;
+      const docW = window.innerWidth;
 
-      NODES.forEach((n, i) => {
-        const p = phases[i];
-        const driftX = Math.sin(t * p.speed + p.xPhase) * p.xAmp;
-        const driftY = Math.cos(t * p.speed + p.yPhase) * p.yAmp;
+      pos.current.forEach((p, i) => {
+        // idle drift even with no cursor
+        const idleX = Math.sin(t * 0.00018 + i * 2) * 0.04;
+        const idleY = Math.cos(t * 0.00014 + i * 3) * 0.04;
 
-        const nodePxX = (n.x / 100) * w;
-        const nodePxY = (n.y / 100) * h;
-        const dx = mouse.current.x - nodePxX;
-        const dy = mouse.current.y - nodePxY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const targetX = (mouse.current.x > -1000 ? mouse.current.x / docW : p.x) + idleX;
+        const targetY = (mouse.current.x > -1000 ? mouse.current.y / docH : p.y) + idleY;
 
-        let pullX = 0, pullY = 0;
-        if (dist < RADIUS) {
-          const force = (1 - dist / RADIUS) * PULL;
-          pullX = dx * force;
-          pullY = dy * force;
+        const ax = (targetX - p.x) * STRENGTH[i];
+        const ay = (targetY - p.y) * STRENGTH[i];
+        p.vx = (p.vx + ax) * DAMPING;
+        p.vy = (p.vy + ay) * DAMPING;
+        p.x += p.vx;
+        p.y += p.vy;
+
+        const el = orbRefs.current[i];
+        if (el) {
+          el.style.left = `${p.x * 100}%`;
+          el.style.top = `${p.y * docH}px`;
         }
-
-        const o = offsets.current[i];
-        o.x += ((driftX + pullX) - o.x) * 0.08;
-        o.y += ((driftY + pullY) - o.y) * 0.08;
-
-        const el = dotsRef.current[i];
-        if (el) el.style.transform = `translate(calc(-50% + ${o.x}px), calc(-50% + ${o.y}px))`;
       });
 
-      if (svgRef.current) {
-        const lines = svgRef.current.querySelectorAll('line');
-        lines.forEach((line, idx) => {
-          const [from, to] = LINKS[idx];
-          const of = offsets.current[from], ot = offsets.current[to];
-          line.setAttribute('x1', NODES[from].x + of.x / w * 100);
-          line.setAttribute('y1', NODES[from].y + of.y / h * 100);
-          line.setAttribute('x2', NODES[to].x + ot.x / w * 100);
-          line.setAttribute('y2', NODES[to].y + ot.y / h * 100);
-        });
-      }
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -80,31 +67,34 @@ export default function NetworkBackground() {
     return () => {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerleave', onLeave);
     };
   }, []);
 
   return (
-    <div className="network-bg" aria-hidden="true">
-      <svg ref={svgRef} viewBox="0 0 100 100" preserveAspectRatio="none" className="network-svg">
-        {LINKS.map(([from, to], i) => (
-          <line key={i} x1={NODES[from].x} y1={NODES[from].y} x2={NODES[to].x} y2={NODES[to].y} />
-        ))}
-      </svg>
-      <div className="network-dots">
-        {NODES.map((n, i) => (
-          <span key={i} ref={el => dotsRef.current[i] = el} className="network-dot" style={{ left: `${n.x}%`, top: `${n.y}%` }} />
-        ))}
-      </div>
+    <div className="glow-bg" aria-hidden="true">
+      <div ref={el => orbRefs.current[0] = el} className="glow-orb glow-orb-a" />
+      <div ref={el => orbRefs.current[1] = el} className="glow-orb glow-orb-b" />
+      <div ref={el => orbRefs.current[2] = el} className="glow-orb glow-orb-c" />
       <style>{`
-        .network-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-        .network-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-        .network-svg line { stroke: var(--glass-border); stroke-width: 1; }
-        .network-dots { position: absolute; inset: 0; }
-        .network-dot {
-          position: absolute; width: 4px; height: 4px; border-radius: 50%;
-          background: var(--text-color); opacity: 0.5;
-          will-change: transform;
+        .glow-bg {
+          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+          min-height: 100vh; z-index: 0; overflow: hidden; pointer-events: none;
+        }
+        .glow-orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(70px);
+          will-change: left, top;
+          transform: translate(-50%, -50%);
+        }
+        .glow-orb-a { width: 620px; height: 620px; background: radial-gradient(circle, var(--text-color) 0%, transparent 70%); opacity: 0.16; }
+        .glow-orb-b { width: 520px; height: 520px; background: radial-gradient(circle, var(--text-color) 0%, transparent 70%); opacity: 0.12; }
+        .glow-orb-c { width: 460px; height: 460px; background: radial-gradient(circle, var(--text-color) 0%, transparent 70%); opacity: 0.14; }
+
+        body.light-mode .glow-orb-a,
+        body.light-mode .glow-orb-b,
+        body.light-mode .glow-orb-c {
+          opacity: 0.22;
         }
       `}</style>
     </div>

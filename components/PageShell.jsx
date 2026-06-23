@@ -4,7 +4,7 @@ import NetworkBackground from './NetworkBackground';
 
 export default function PageShell({ children }) {
   return (
-    <>
+    <div className="page-root">
       <NetworkBackground />
       <Sidebar />
       <main className="page-main">
@@ -15,9 +15,10 @@ export default function PageShell({ children }) {
       </main>
 
       <style>{`
-        .page-main { margin-left: 240px; min-height: 100vh; }
+        .page-root { position: relative; min-height: 100vh; }
+        .page-main { margin-left: 240px; min-height: 100vh; position: relative; z-index: 1; }
         @media (max-width: 860px) { .page-main { margin-left: 0; } }
       `}</style>
-    </>
+    </div>
   );
 }
