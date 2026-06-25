@@ -2,99 +2,143 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * GlowOrbs (bold, room-filling, cursor-reactive)
- * Three large soft-light orbs drift slowly across the FULL page height
- * (not just viewport) and visibly chase the cursor with springy elastic
- * lag — big, obvious motion meant to be noticed from across a room.
- * Replaces the old subtle node-network for the Editorial Sidebar sample.
+ * ConstellationSpotlight (Sidebar sample)
+ * Sparse, isolated polygon constellations (not a uniform grid) scattered
+ * across the full page height, plus a soft circular spotlight that
+ * follows the cursor and visibly brightens the network + page surface
+ * beneath it — matching the reference: a quiet network with a torch
+ * that follows you, not a colorful light show.
  */
+
+// Pre-defined isolated clusters: each cluster is a small set of nodes
+// close together, clusters are far apart from each other (not a uniform grid).
+const CLUSTERS = [
+  { cx: 8,  cy: 8,  nodes: [[0,0],[3,-2],[-2,4],[5,3]] },
+  { cx: 22, cy: 28, nodes: [[0,0],[4,2],[2,-4],[-3,3],[6,-1]] },
+  { cx: 88, cy: 12, nodes: [[0,0],[-4,3],[2,5],[-2,-3]] },
+  { cx: 70, cy: 32, nodes: [[0,0],[5,2],[-3,4],[3,-3]] },
+  { cx: 12, cy: 55, nodes: [[0,0],[4,-2],[-2,3]] },
+  { cx: 45, cy: 62, nodes: [[0,0],[3,3],[-4,1],[2,-4],[-1,5]] },
+  { cx: 80, cy: 58, nodes: [[0,0],[-3,2],[3,4]] },
+  { cx: 30, cy: 85, nodes: [[0,0],[4,2],[-2,-3],[1,4]] },
+  { cx: 90, cy: 86, nodes: [[0,0],[-4,3],[2,-2]] },
+  { cx: 60, cy: 90, nodes: [[0,0],[3,-3],[-3,2],[5,1]] },
+];
+
+// Connect every node within a cluster to the cluster's first node and to
+// its nearest sibling, giving each cluster a few internal triangulated lines.
+function buildLinks() {
+  const links = [];
+  CLUSTERS.forEach((cluster, ci) => {
+    const n = cluster.nodes.length;
+    for (let i = 1; i < n; i++) {
+      links.push({ ci, a: 0, b: i });
+    }
+    if (n > 2) links.push({ ci, a: 1, b: n - 1 });
+  });
+  return links;
+}
+const LINKS = buildLinks();
+
 export default function NetworkBackground() {
-  const orbRefs = useRef([]);
+  const svgRef = useRef(null);
+  const dotsRef = useRef([]);
+  const spotlightRef = useRef(null);
   const rafRef = useRef(null);
   const mouse = useRef({ x: -9999, y: -9999 });
-  const pos = useRef([
-    { x: 0.2, y: 0.15, vx: 0, vy: 0 },
-    { x: 0.75, y: 0.45, vx: 0, vy: 0 },
-    { x: 0.4, y: 0.8, vx: 0, vy: 0 },
-  ]);
+  const eased = useRef({ x: -9999, y: -9999 });
+
+  // flat list of {ci, ni, x, y} for refs
+  const flatNodes = useRef(
+    CLUSTERS.flatMap((cluster, ci) =>
+      cluster.nodes.map((n, ni) => ({ ci, ni, x: cluster.cx + n[0], y: cluster.cy + n[1] }))
+    )
+  );
 
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const onMove = (e) => {
-      const docH = document.documentElement.scrollHeight;
-      mouse.current = { x: e.clientX, y: e.clientY + window.scrollY, docH };
+      mouse.current = { x: e.clientX, y: e.clientY + window.scrollY };
     };
+    const onLeave = () => { mouse.current = { x: -9999, y: -9999 }; };
     window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('pointerleave', onLeave);
 
-    if (reduced) {
-      return () => window.removeEventListener('pointermove', onMove);
-    }
+    const tick = () => {
+      eased.current.x += (mouse.current.x - eased.current.x) * 0.12;
+      eased.current.y += (mouse.current.y - eased.current.y) * 0.12;
 
-    const STRENGTH = [0.012, 0.02, 0.016]; // each orb chases at a different speed -> elastic lag feel
-    const DAMPING = 0.90;
-
-    const tick = (t) => {
-      const docH = document.documentElement.scrollHeight || window.innerHeight;
-      const docW = window.innerWidth;
-
-      pos.current.forEach((p, i) => {
-        // idle drift even with no cursor
-        const idleX = Math.sin(t * 0.00018 + i * 2) * 0.04;
-        const idleY = Math.cos(t * 0.00014 + i * 3) * 0.04;
-
-        const targetX = (mouse.current.x > -1000 ? mouse.current.x / docW : p.x) + idleX;
-        const targetY = (mouse.current.x > -1000 ? mouse.current.y / docH : p.y) + idleY;
-
-        const ax = (targetX - p.x) * STRENGTH[i];
-        const ay = (targetY - p.y) * STRENGTH[i];
-        p.vx = (p.vx + ax) * DAMPING;
-        p.vy = (p.vy + ay) * DAMPING;
-        p.x += p.vx;
-        p.y += p.vy;
-
-        const el = orbRefs.current[i];
-        if (el) {
-          el.style.left = `${p.x * 100}%`;
-          el.style.top = `${p.y * docH}px`;
-        }
-      });
+      if (spotlightRef.current) {
+        spotlightRef.current.style.transform = `translate(${eased.current.x - 260}px, ${eased.current.y - 260}px)`;
+      }
 
       rafRef.current = requestAnimationFrame(tick);
     };
-    rafRef.current = requestAnimationFrame(tick);
+
+    if (!reduced) {
+      rafRef.current = requestAnimationFrame(tick);
+    }
 
     return () => {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerleave', onLeave);
     };
   }, []);
 
   return (
-    <div className="glow-bg" aria-hidden="true">
-      <div ref={el => orbRefs.current[0] = el} className="glow-orb glow-orb-a" />
-      <div ref={el => orbRefs.current[1] = el} className="glow-orb glow-orb-b" />
-      <div ref={el => orbRefs.current[2] = el} className="glow-orb glow-orb-c" />
+    <div className="constellation-bg" aria-hidden="true">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="constellation-svg">
+        {LINKS.map(({ ci, a, b }, i) => {
+          const cluster = CLUSTERS[ci];
+          const na = cluster.nodes[a], nb = cluster.nodes[b];
+          return (
+            <line
+              key={i}
+              x1={cluster.cx + na[0]} y1={cluster.cy + na[1]}
+              x2={cluster.cx + nb[0]} y2={cluster.cy + nb[1]}
+            />
+          );
+        })}
+      </svg>
+      <div className="constellation-dots">
+        {flatNodes.current.map((n, i) => (
+          <span key={i} className="constellation-dot" style={{ left: `${n.x}%`, top: `${n.y}%` }} />
+        ))}
+      </div>
+      <div ref={spotlightRef} className="cursor-spotlight" />
       <style>{`
-        .glow-bg {
+        .constellation-bg {
           position: absolute; top: 0; left: 0; width: 100%; height: 100%;
           min-height: 100vh; z-index: 0; overflow: hidden; pointer-events: none;
         }
-        .glow-orb {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(70px);
-          will-change: left, top;
+        .constellation-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+        .constellation-svg line { stroke: var(--glass-border); stroke-width: 1; }
+        .constellation-dots { position: absolute; inset: 0; }
+        .constellation-dot {
+          position: absolute; width: 3px; height: 3px; border-radius: 50%;
+          background: var(--text-color); opacity: 0.35;
           transform: translate(-50%, -50%);
         }
-        .glow-orb-a { width: 620px; height: 620px; background: radial-gradient(circle, var(--text-color) 0%, transparent 70%); opacity: 0.16; }
-        .glow-orb-b { width: 520px; height: 520px; background: radial-gradient(circle, var(--text-color) 0%, transparent 70%); opacity: 0.12; }
-        .glow-orb-c { width: 460px; height: 460px; background: radial-gradient(circle, var(--text-color) 0%, transparent 70%); opacity: 0.14; }
+        .cursor-spotlight {
+          position: absolute; top: 0; left: 0;
+          width: 520px; height: 520px;
+          border-radius: 50%;
+          background: radial-gradient(circle, var(--glass-bg) 0%, transparent 70%);
+          will-change: transform;
+          mix-blend-mode: overlay;
+        }
+        body.light-mode .cursor-spotlight {
+          background: radial-gradient(circle, rgba(0,0,0,0.10) 0%, transparent 70%);
+          mix-blend-mode: multiply;
+        }
 
-        body.light-mode .glow-orb-a,
-        body.light-mode .glow-orb-b,
-        body.light-mode .glow-orb-c {
-          opacity: 0.22;
+        @media (prefers-reduced-motion: reduce) {
+          .cursor-spotlight { display: none; }
+        }
+        @media (pointer: coarse) {
+          .cursor-spotlight { display: none; }
         }
       `}</style>
     </div>
